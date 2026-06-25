@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% block title %}Ballot — {{ election.title }} — VoteSecure{% endblock %}
+
+{% block extra_css %}
+<style>body { user-select: none; -webkit-user-select: none; }</style>
+{% endblock %}
+
+{% block content %}
+<div class="ballot-container">
+
+  <div class="ballot-header">
+    <div class="ballot-badge">🔴 LIVE ELECTION</div>
+    <h1 class="ballot-title">{{ election.title }}</h1>
+    {% if election.instructions %}
+    <div class="ballot-instructions" role="note">
+      <strong>Instructions:</strong> {{ election.instructions }}
+    </div>
+    {% endif %}
+    <div class="ballot-deadline">
+      <span>Voting closes:</span> <strong>{{ election.end_datetime|date:"d M Y, H:i" }}</strong>
+    </div>
+  </div>
+
+  <div class="voter-identity" role="note">
+    <span aria-hidden="true">👤</span>
+    <span>Voting as:</span>
+    <strong>{{ request.user.full_name }}</strong>
+    {% if request.user.voter_profile %}
+      <span class="voter-id-tag">ID: {{ request.user.voter_profile.voter_id }}</span>
+    {% endif %}
+  </div>
+
+  <form id="ballotForm" novalidate>
+    {% csrf_token %}
+    <div class="candidates-grid" role="radiogroup" aria-label="Select a candidate">
+      {% for candidate in candidates %}
+      <div class="candidate-card" id="card_{{ candidate.id }}" role="radio" aria-checked="false" tabindex="0"
+           onclick="selectCandidate({{ candidate.id }}, '{{ candidate.name }}', '{{ candidate.party_name }}')"
+           onkeydown="if(event.key==='Enter'||event.key===' ') selectCandidate({{ candidate.id }}, '{{ candidate.name }}', '{{ candidate.party_name }}')"
+           data-candidate-id="{{ candidate.id }}">
+
+        <div class="selected-overlay" aria-hidden="true"><div class="checkmark">✓</div></div>
+
+        <div class="candidate-photo-wrap">
+          <img src="{{ candidate.photo_url }}" alt="Photo of {{ candidate.name }}" class="candidate-photo" loading="lazy" />
+        </div>
+
+        <div class="candidate-info">
+          <h2 class="candidate-name">{{ candidate.name }}</h2>
+          <div class="party-row">
+            <img src="{{ candidate.symbol_url }}" alt="{{ candidate.party_name }} symbol" class="party-symbol" loading="lazy" />
+            <span class="party-name">{{ candidate.party_name }}</span>
+          </div>
+          {% if candidate.bio %}<p class="candidate-bio">{{ candidate.bio|truncatewords:20 }}</p>{% endif %}
+          {% if candidate.manifesto_list %}
+          <details class="manifesto-details">
+            <summary>View manifesto points</summary>
+            <ul class="manifesto-list">{% for point in candidate.manifesto_list %}<li>{{ point }}</li>{% endfor %}</ul>
+          </details>
+          {% endif %}
+        </div>
+
+        <div class="ballot-serial">{{ forloop.counter }}</div>
+      </div>
+      {% empty %}
+      <p class="no-candidates">No candidates registered for this election.</p>
+      {% endfor %}
+    </div>
+
+    <div class="ballot-actions">
+      <button type="button" id="castVoteBtn" class="btn btn-primary btn-xl" onclick="openConfirmModal()" disabled aria-disabled="true">
+        Review &amp; Cast Vote
+      </button>
+      <p class="vote-note">⚠️ You can only vote once. This action cannot be undone.</p>
+    </div>
+  </form>
+</div>
+
+<div id="confirmModal" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modalTitle" hidden>
+  <div class="modal-card">
+    <div class="modal-header"><h2 id="modalTitle">Confirm Your Vote</h2></div>
+    <div class="modal-body">
+      <p>You are about to cast your vote for:</p>
+      <div class="modal-candidate-preview">
+        <span class="modal-candidate-name" id="modalCandidateName">—</span>
+        <span class="modal-party-name" id="modalPartyName">—</span>
+      </div>
+      <p class="modal-warning">⚠️ This is final and cannot be changed. Are you sure?</p>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn btn-danger" id="confirmVoteBtn" onclick="submitVote()">Yes, Cast My Vote</button>
+    </div>
+  </div>
+</div>
+
+<div id="loadingOverlay" class="loading-overlay" hidden aria-live="assertive">
+  <div class="spinner" aria-label="Submitting vote..."></div>
+  <p>Submitting your vote securely…</p>
+</div>
+
+<script>
+  let selectedCandidateId = null, selectedCandidateName = '', selectedPartyName = '';
+  const electionId = {{ election.id }};
+
+  function selectCandidate(id, name, party) {
+    document.querySelectorAll('.candidate-card').forEach(card => {
+      card.classList.remove('selected');
+      card.setAttribute('aria-checked', 'false');
+    });
+    const card = document.getElementById(`card_${id}`);
+    card.classList.add('selected');
+    card.setAttribute('aria-checked', 'true');
+    selectedCandidateId = id; selectedCandidateName = name; selectedPartyName = party;
+    const btn = document.getElementById('castVoteBtn');
+    btn.disabled = false; btn.setAttribute('aria-disabled', 'false');
+  }
+
+  function openConfirmModal() {
+    if (!selectedCandidateId) return;
+    document.getElementById('modalCandidateName').textContent = selectedCandidateName;
+    document.getElementById('modalPartyName').textContent = selectedPartyName;
+    document.getElementById('confirmModal').hidden = false;
+  }
+
+  function closeConfirmModal() { document.getElementById('confirmModal').hidden = true; }
+
+  async function submitVote() {
+    document.getElementById('confirmModal').hidden = true;
+    document.getElementById('loadingOverlay').hidden = false;
+    document.getElementById('confirmVoteBtn').disabled = true;
+
+    try {
+      const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+      const response = await fetch(`/votes/cast/${electionId}/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': csrfToken },
+        body: `candidate_id=${selectedCandidateId}`,
+      });
+      const data = await response.json();
+      if (data.success) { window.location.href = data.redirect; }
+      else {
+        document.getElementById('loadingOverlay').hidden = true;
+        alert('Error: ' + (data.error || 'Unable to cast vote.'));
+      }
+    } catch (err) {
+      document.getElementById('loadingOverlay').hidden = true;
+      alert('Network error. Please check your connection and try again.');
+    }
+  }
+
+  document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeConfirmModal(); });
+</script>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Configure Election — VoteSecure{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 0 auto;">
+  <div class="card">
+    <h1 class="auth-title" style="margin-bottom: 1.5rem;">
+      {% if election %}Edit Election{% else %}Create New Election{% endif %}
+    </h1>
+
+    <form method="post" action="{% if election %}{% url 'dashboard:election_edit' election.id %}{% else %}{% url 'dashboard:election_configure' %}{% endif %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label for="title">Election Title *</label>
+        <input type="text" name="title" id="title" class="form-control" required value="{{ election.title|default:'' }}" placeholder="e.g. General Election 2024" />
+      </div>
+
+      <div class="form-group">
+        <label for="description">Description</label>
+        <textarea name="description" id="description" class="form-control" rows="3" placeholder="Brief description of this election">{{ election.description|default:'' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="instructions">Voting Instructions</label>
+        <textarea name="instructions" id="instructions" class="form-control" rows="3" placeholder="Rules shown to voters on the ballot page">{{ election.instructions|default:'' }}</textarea>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+        <div class="form-group">
+          <label for="start_datetime">Start Date &amp; Time *</label>
+          <input type="datetime-local" name="start_datetime" id="start_datetime" class="form-control" required value="{{ election.start_datetime|date:'Y-m-d\TH:i'|default:'' }}" />
+        </div>
+        <div class="form-group">
+          <label for="end_datetime">End Date &amp; Time *</label>
+          <input type="datetime-local" name="end_datetime" id="end_datetime" class="form-control" required value="{{ election.end_datetime|date:'Y-m-d\TH:i'|default:'' }}" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="status">Status</label>
+        <select name="status" id="status" class="form-control">
+          <option value="draft" {% if election.status == 'draft' %}selected{% endif %}>Draft</option>
+          <option value="active" {% if election.status == 'active' %}selected{% endif %}>Active</option>
+          <option value="closed" {% if election.status == 'closed' %}selected{% endif %}>Closed</option>
+          <option value="results" {% if election.status == 'results' %}selected{% endif %}>Results Published</option>
+        </select>
+      </div>
+
+      <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+        <button type="submit" class="btn btn-primary">
+          {% if election %}Save Changes{% else %}Create Election{% endif %}
+        </button>
+        <a href="{% url 'dashboard:admin_home' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,14 @@
+{
+  "name": "VoteSecure — Online Voting System",
+  "short_name": "VoteSecure",
+  "description": "Secure, accessible online voting platform",
+  "start_url": "/dashboard/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "theme_color": "#0D47A1",
+  "background_color": "#FAFAFA",
+  "lang": "en",
+  "icons": [],
+  "categories": ["government", "utilities"],
+  "prefer_related_applications": false
+}

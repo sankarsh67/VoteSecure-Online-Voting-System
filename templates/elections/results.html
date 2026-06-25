@@ -1,0 +1,97 @@
+{% extends "base.html" %}
+{% block title %}Election Results — {{ election.title }}{% endblock %}
+
+{% block content %}
+<div class="results-container">
+
+  <div class="results-header">
+    <div class="results-badge">📊 OFFICIAL RESULTS</div>
+    <h1 class="results-title">{{ election.title }}</h1>
+    <p class="results-subtitle">Final results as of {{ election.end_datetime|date:"d M Y, H:i" }}</p>
+    <div class="results-stats-row">
+      <div class="results-stat"><span class="results-stat-value">{{ total_votes }}</span><span class="results-stat-label">Total Votes</span></div>
+      <div class="results-stat"><span class="results-stat-value">{{ turnout_pct }}%</span><span class="results-stat-label">Voter Turnout</span></div>
+      <div class="results-stat"><span class="results-stat-value">{{ candidates|length }}</span><span class="results-stat-label">Candidates</span></div>
+    </div>
+  </div>
+
+  {% if winner %}
+  <div class="winner-card" id="winnerCard">
+    <div class="winner-confetti" aria-hidden="true">🎉</div>
+    <div class="winner-label">🏆 WINNER</div>
+    <img src="{{ winner.photo_url }}" alt="{{ winner.name }}" class="winner-photo" />
+    <h2 class="winner-name">{{ winner.name }}</h2>
+    <div class="winner-party">
+      <img src="{{ winner.symbol_url }}" alt="{{ winner.party_name }}" class="winner-symbol" />
+      {{ winner.party_name }}
+    </div>
+    <div class="winner-votes">{{ winner.vote_count }} votes ({{ winner_pct }}%)</div>
+  </div>
+  {% endif %}
+
+  <div class="card results-card">
+    <h2 class="card-title">📊 Candidate Results</h2>
+    <div class="results-list" id="resultsList">
+      {% for candidate in candidates %}
+      <div class="result-row {% if candidate == winner %}result-winner{% endif %}"
+           data-votes="{{ candidate.vote_count }}" data-pct="{{ candidate.vote_pct }}">
+        <div class="result-rank">#{{ forloop.counter }}</div>
+        <img src="{{ candidate.photo_url }}" alt="{{ candidate.name }}" class="result-photo" />
+        <div class="result-info">
+          <div class="result-name-row">
+            <strong class="result-name">{{ candidate.name }}</strong>
+            {% if candidate == winner %}<span class="winner-crown">👑</span>{% endif %}
+            <img src="{{ candidate.symbol_url }}" alt="" class="result-symbol" />
+            <span class="result-party">{{ candidate.party_name }}</span>
+          </div>
+          <div class="result-bar-wrap">
+            <div class="result-bar" style="--target-width: {{ candidate.vote_pct }}%" id="bar_{{ candidate.id }}"></div>
+          </div>
+        </div>
+        <div class="result-numbers">
+          <span class="result-vote-count">{{ candidate.vote_count }}</span>
+          <span class="result-pct">{{ candidate.vote_pct }}%</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+  {% if prediction %}
+  <div class="card prediction-card">
+    <h2 class="card-title">🔮 Current Leader</h2>
+    <div class="prediction-content">
+      <img src="{{ prediction.photo_url }}" alt="{{ prediction.name }}" class="prediction-photo" />
+      <div><strong>{{ prediction.name }}</strong> is currently leading with <strong>{{ prediction.vote_count }} votes ({{ prediction.vote_pct }}%)</strong></div>
+    </div>
+    <p class="prediction-note">⚠️ Election still in progress. Results may change.</p>
+  </div>
+  {% endif %}
+
+  {% if request.user.is_admin %}
+  <div class="results-actions">
+    <a href="/dashboard/export/results/{{ election.id }}/?format=excel" class="btn btn-primary">📊 Export to Excel</a>
+    <a href="/dashboard/export/results/{{ election.id }}/?format=pdf" class="btn btn-outline">📄 Export to PDF</a>
+    <a href="{% url 'dashboard:admin_home' %}" class="btn btn-ghost">← Dashboard</a>
+  </div>
+  {% endif %}
+
+</div>
+
+<script>
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const winnerCard = document.getElementById('winnerCard');
+      if (winnerCard) winnerCard.classList.add('winner-animate');
+    }, 300);
+
+    document.querySelectorAll('.result-bar').forEach((bar, i) => {
+      setTimeout(() => { bar.style.width = bar.style.getPropertyValue('--target-width'); }, 500 + (i * 200));
+    });
+
+    document.querySelectorAll('.result-row').forEach((row, i) => {
+      setTimeout(() => { row.classList.add('result-row-visible'); }, 200 + (i * 150));
+    });
+  });
+</script>
+{% endblock %}

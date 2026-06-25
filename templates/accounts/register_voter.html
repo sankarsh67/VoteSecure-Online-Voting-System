@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Register as Voter — VoteSecure{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card fade-in" style="max-width: 520px;">
+
+    <div class="auth-header">
+      <div class="auth-logo">✍️</div>
+      <h1 class="auth-title">Voter Registration</h1>
+      <p class="auth-subtitle">Create your account to participate in elections</p>
+    </div>
+
+    <form method="post" action="{% url 'accounts:register_voter' %}" class="auth-form" novalidate>
+      {% csrf_token %}
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label for="first_name">First Name *</label>
+          <input type="text" name="first_name" id="first_name" class="form-control" placeholder="John" required value="{{ request.POST.first_name }}" />
+        </div>
+        <div class="form-group">
+          <label for="last_name">Last Name *</label>
+          <input type="text" name="last_name" id="last_name" class="form-control" placeholder="Doe" required value="{{ request.POST.last_name }}" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email Address *</label>
+        <input type="email" name="email" id="email" class="form-control" placeholder="your@email.com" required value="{{ request.POST.email }}" />
+      </div>
+
+      <div class="form-group">
+        <label for="voter_id">Voter ID (EPIC Number) *</label>
+        <input type="text" name="voter_id" id="voter_id" class="form-control" placeholder="e.g. EPIC001" required value="{{ request.POST.voter_id }}" />
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input type="tel" name="phone" id="phone" class="form-control" placeholder="9876543210" value="{{ request.POST.phone }}" />
+        </div>
+        <div class="form-group">
+          <label for="constituency">Constituency</label>
+          <input type="text" name="constituency" id="constituency" class="form-control" placeholder="Delhi North" value="{{ request.POST.constituency }}" />
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password1">Password *</label>
+        <div class="input-with-icon">
+          <input type="password" name="password1" id="password1" class="form-control" placeholder="Min 8 characters" required />
+          <button type="button" class="toggle-password" onclick="togglePwd('password1','eye1')" aria-label="Toggle"><span id="eye1">👁️</span></button>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="password2">Confirm Password *</label>
+        <div class="input-with-icon">
+          <input type="password" name="password2" id="password2" class="form-control" placeholder="Repeat password" required />
+          <button type="button" class="toggle-password" onclick="togglePwd('password2','eye2')" aria-label="Toggle"><span id="eye2">👁️</span></button>
+        </div>
+        <p class="field-error" id="pwdError" style="display:none;">Passwords do not match.</p>
+      </div>
+
+      {% if errors %}
+        {% for error in errors %}<div class="alert alert-danger">{{ error }}</div>{% endfor %}
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-full" onclick="return validateForm()">
+        ✍️ Register as Voter
+      </button>
+    </form>
+
+    <div class="auth-divider"><span>already have an account?</span></div>
+    <a href="{% url 'accounts:login' %}" class="btn btn-outline btn-full">← Back to Login</a>
+  </div>
+</div>
+
+<script>
+  function togglePwd(fieldId, iconId) {
+    const field = document.getElementById(fieldId);
+    const icon = document.getElementById(iconId);
+    field.type = field.type === 'password' ? 'text' : 'password';
+    icon.textContent = field.type === 'password' ? '👁️' : '🙈';
+  }
+
+  function validateForm() {
+    const p1 = document.getElementById('password1').value;
+    const p2 = document.getElementById('password2').value;
+    if (p1 !== p2) {
+      document.getElementById('pwdError').style.display = 'block';
+      return false;
+    }
+    document.getElementById('pwdError').style.display = 'none';
+    return true;
+  }
+</script>
+{% endblock %}

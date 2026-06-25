@@ -1,0 +1,187 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard — VoteSecure{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-value">{{ total_voters }}</div><div class="stat-label">Total Eligible Voters</div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-value">{{ total_voted }}</div><div class="stat-label">Votes Cast</div></div>
+    <div class="stat-card"><div class="stat-icon">📊</div><div class="stat-value">{{ turnout_pct }}%</div><div class="stat-label">Voter Turnout</div></div>
+    <div class="stat-card"><div class="stat-icon">🗳️</div><div class="stat-value">{{ elections.count }}</div><div class="stat-label">Elections</div></div>
+  </div>
+
+  <!-- Quick Actions -->
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-header">
+      <h2>⚡ Quick Actions</h2>
+    </div>
+    <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+      <a href="{% url 'dashboard:election_configure' %}" class="btn btn-primary btn-sm">+ New Election</a>
+      <a href="{% url 'dashboard:send_email' %}" class="btn btn-outline btn-sm">📧 Send Email</a>
+      <a href="/accounts/upload-voters/" class="btn btn-outline btn-sm">📂 Upload Voters</a>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <div class="dashboard-col-main">
+
+      {% if active_election %}
+      <div class="card chart-card">
+        <div class="card-header">
+          <h2>📈 Live Voter Turnout</h2>
+          <span class="live-badge">🔴 LIVE</span>
+          <button class="btn btn-sm btn-outline" onclick="refreshCharts()">Refresh</button>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+          <div class="chart-wrap"><canvas id="pieChart"></canvas></div>
+        </div>
+      </div>
+      {% else %}
+      <div class="card"><p class="empty-state">No active election. Create one to see live charts.</p></div>
+      {% endif %}
+
+      <div class="card">
+        <div class="card-header">
+          <h2>🗓️ Elections</h2>
+          <a href="{% url 'dashboard:election_configure' %}" class="btn btn-primary btn-sm">+ New Election</a>
+        </div>
+        <div class="table-responsive">
+          <table class="data-table">
+            <thead>
+              <tr><th>Title</th><th>Status</th><th>Starts</th><th>Ends</th><th>Votes</th><th>Actions</th></tr>
+            </thead>
+            <tbody>
+              {% for election in elections %}
+              <tr>
+                <td><strong>{{ election.title }}</strong></td>
+                <td><span class="status-badge status-{{ election.status }}">{{ election.get_status_display }}</span></td>
+                <td>{{ election.start_datetime|date:"d/m/Y H:i" }}</td>
+                <td>{{ election.end_datetime|date:"d/m/Y H:i" }}</td>
+                <td>{{ election.total_votes }}</td>
+                <td style="display:flex; gap:6px; flex-wrap:wrap;">
+                  <a href="{% url 'dashboard:election_edit' election.id %}" class="btn btn-sm btn-outline">Edit</a>
+                  <a href="/votes/ballot/{{ election.id }}/" class="btn btn-sm btn-ghost">Preview</a>
+                  <a href="{% url 'dashboard:results' election.id %}" class="btn btn-sm btn-outline" style="color:#2E7D32; border-color:#2E7D32;">📊 Results</a>
+                  <a href="/dashboard/export/results/{{ election.id }}/?format=excel" class="btn btn-sm btn-ghost">📥 Excel</a>
+                  <a href="/dashboard/export/results/{{ election.id }}/?format=pdf" class="btn btn-sm btn-ghost">📄 PDF</a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr><td colspan="6" class="empty-cell">No elections yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {% if active_election %}
+      <div class="card">
+        <div class="card-header">
+          <h2>👤 Candidates — {{ active_election.title }}</h2>
+          <a href="/candidates/add/{{ active_election.id }}/" class="btn btn-primary btn-sm">+ Add Candidate</a>
+        </div>
+        <div class="candidates-list-admin">
+          {% for c in candidates %}
+          <div class="candidate-list-item">
+            <img src="{{ c.photo_url }}" alt="{{ c.name }}" class="candidate-thumb" />
+            <div class="candidate-list-info"><strong>{{ c.name }}</strong><span class="party-tag">{{ c.party_name }}</span></div>
+            <span class="vote-tally">{{ c.vote_count }} vote{{ c.vote_count|pluralize }}</span>
+            <div class="candidate-actions"><a href="/candidates/edit/{{ c.id }}/" class="btn btn-sm btn-outline">Edit</a></div>
+          </div>
+          {% empty %}
+          <p class="empty-state">No candidates added yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <div class="dashboard-col-side">
+      <div class="card">
+        <h2>📂 Upload Voter CSV</h2>
+        <p class="card-desc">Upload a CSV with columns: email, first_name, last_name, voter_id, phone, constituency</p>
+        <form method="post" enctype="multipart/form-data" action="/accounts/upload-voters/">
+          {% csrf_token %}
+          <div class="form-group"><input type="file" name="csv_file" accept=".csv" class="form-control" required /></div>
+          <button type="submit" class="btn btn-primary btn-full">Import Voters</button>
+        </form>
+      </div>
+
+      <div class="card audit-card">
+        <h2>🔍 Recent Activity</h2>
+        <div class="audit-list">
+          {% for log in recent_logs %}
+          <div class="audit-item">
+            <span class="audit-icon">
+              {% if log.action == 'login' %}🟢{% elif log.action == 'login_failed' %}🔴{% elif log.action == 'vote_cast' %}✅{% elif log.action == 'logout' %}⚫{% else %}📝{% endif %}
+            </span>
+            <div class="audit-details">
+              <span class="audit-action">{{ log.get_action_display }}</span>
+              <span class="audit-user">{{ log.user.email|default:"Anonymous" }}</span>
+              <span class="audit-ip">{{ log.ip_address|default:"—" }}</span>
+            </div>
+            <span class="audit-time">{{ log.timestamp|timesince }} ago</span>
+          </div>
+          {% empty %}
+          <p class="empty-state">No activity yet.</p>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% if active_election %}
+<script>
+  const ELECTION_ID = {{ active_election.id }};
+  let barChart, pieChart;
+
+  async function fetchTurnoutData() {
+    try {
+      const res = await fetch(`/api/turnout/${ELECTION_ID}/`);
+      if (res.status === 401) { window.location.href = '/accounts/login/'; return null; }
+      return await res.json();
+    } catch { return null; }
+  }
+
+  async function initCharts() {
+    const data = await fetchTurnoutData();
+    if (!data) return;
+    const labels = data.candidates.map(c => c.name);
+    const votes = data.candidates.map(c => c.votes);
+    const colors = ['#0D47A1','#1565C0','#1976D2','#1E88E5','#2196F3','#42A5F5'];
+
+    barChart = new Chart(document.getElementById('barChart').getContext('2d'), {
+      type: 'bar',
+      data: { labels, datasets: [{ label: 'Votes', data: votes, backgroundColor: colors, borderRadius: 8 }] },
+      options: {
+        responsive: true,
+        plugins: { legend: { display: false }, title: { display: true, text: 'Votes per Candidate' } },
+        scales: { y: { beginAtZero: true, ticks: { stepSize: 1 } } }
+      }
+    });
+
+    pieChart = new Chart(document.getElementById('pieChart').getContext('2d'), {
+      type: 'doughnut',
+      data: { labels: ['Voted', 'Not Voted'], datasets: [{ data: [data.votes_cast, data.not_voted], backgroundColor: ['#0D47A1', '#E3F2FD'] }] },
+      options: { responsive: true, cutout: '65%', plugins: { legend: { position: 'bottom' }, title: { display: true, text: `Turnout: ${data.turnout_percent}%` } } }
+    });
+  }
+
+  async function refreshCharts() {
+    const data = await fetchTurnoutData();
+    if (!data) return;
+    barChart.data.datasets[0].data = data.candidates.map(c => c.votes);
+    pieChart.data.datasets[0].data = [data.votes_cast, data.not_voted];
+    barChart.update(); pieChart.update();
+  }
+
+  window.addEventListener('DOMContentLoaded', () => {
+    initCharts();
+    setInterval(refreshCharts, 5000); // real-time update every 5s
+  });
+</script>
+{% endif %}
+{% endblock %}

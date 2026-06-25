@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Voter Dashboard — VoteSecure{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+  <div class="voter-welcome">
+    <h1>Welcome, {{ request.user.first_name }}!</h1>
+    {% if request.user.voter_profile %}
+    <p class="voter-meta">
+      Voter ID: <strong>{{ request.user.voter_profile.voter_id }}</strong> ·
+      Constituency: <strong>{{ request.user.voter_profile.constituency|default:"—" }}</strong>
+    </p>
+    {% endif %}
+  </div>
+
+  {% if elections_data %}
+    <div class="elections-list-voter">
+      {% for item in elections_data %}
+      <div class="election-card-voter {% if item.has_voted %}voted{% endif %}">
+        <div class="election-card-header">
+          <h2>{{ item.election.title }}</h2>
+          {% if item.has_voted %}<span class="status-badge status-voted">✅ Voted</span>
+          {% elif item.can_vote %}<span class="status-badge status-active">🔴 Vote Now</span>
+          {% else %}<span class="status-badge status-closed">Closed</span>{% endif %}
+        </div>
+        {% if item.election.description %}<p class="election-desc">{{ item.election.description }}</p>{% endif %}
+        <div class="election-timing">Closes: <strong>{{ item.election.end_datetime|date:"d M Y, H:i" }}</strong></div>
+        <div class="election-card-actions">
+          {% if item.can_vote %}
+            <a href="{% url 'votes:ballot' item.election.id %}" class="btn btn-primary">🗳️ Cast My Vote</a>
+          {% elif item.has_voted %}
+            <a href="{% url 'votes:thank_you' item.election.id %}" class="btn btn-outline">📄 View Receipt</a>
+            <a href="{% url 'dashboard:results' item.election.id %}" class="btn btn-ghost">📊 View Results</a>
+          {% else %}
+            <button class="btn btn-ghost" disabled>Not Available</button>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state-card">
+      <div class="empty-icon">🗳️</div>
+      <h2>No Active Elections</h2>
+      <p>Check back when an election is scheduled. You will be notified.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

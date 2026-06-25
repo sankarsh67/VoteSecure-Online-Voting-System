@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Verify OTP — VoteSecure{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card fade-in">
+    <div class="auth-header">
+      <div class="auth-logo" style="font-size: 3rem;">📱</div>
+      <h1 class="auth-title">Enter OTP</h1>
+      <p class="auth-subtitle">A 6-digit code has been sent to your registered email address. Valid for 10 minutes.</p>
+    </div>
+
+    <form method="post" action="{% url 'accounts:verify_otp' %}" class="auth-form">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="id_otp_code">One-Time Password</label>
+        <input type="text" name="otp_code" id="id_otp_code" class="form-control otp-input"
+               maxlength="6" inputmode="numeric" autocomplete="one-time-code"
+               placeholder="• • • • • •" autofocus required />
+        {% if form.otp_code.errors %}<p class="field-error" role="alert">{{ form.otp_code.errors.0 }}</p>{% endif %}
+      </div>
+
+      <div class="otp-timer" id="otpTimer" aria-live="polite">
+        <span>OTP expires in:</span>
+        <strong id="otpCountdown">10:00</strong>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-full" id="verifyBtn" disabled>
+        Verify &amp; Login
+      </button>
+    </form>
+
+    <div class="auth-links">
+      <a href="{% url 'accounts:login' %}">← Back to Login / Resend OTP</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  const otpInput = document.getElementById('id_otp_code');
+  const verifyBtn = document.getElementById('verifyBtn');
+
+  otpInput.addEventListener('input', function () {
+    this.value = this.value.replace(/\D/g, '');
+    verifyBtn.disabled = this.value.length !== 6;
+    if (this.value.length === 6) this.closest('form').submit();
+  });
+
+  let remaining = 600;
+  const countdown = document.getElementById('otpCountdown');
+  const timer = setInterval(() => {
+    remaining--;
+    const m = Math.floor(remaining / 60);
+    const s = remaining % 60;
+    countdown.textContent = `${m}:${s.toString().padStart(2, '0')}`;
+    if (remaining <= 0) {
+      clearInterval(timer);
+      countdown.textContent = 'Expired';
+      verifyBtn.disabled = true;
+      countdown.style.color = '#f44336';
+    }
+    if (remaining <= 60) countdown.style.color = '#ff9800';
+  }, 1000);
+</script>
+{% endblock %}

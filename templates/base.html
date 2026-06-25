@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <link rel="manifest" href="/static/manifest.json" />
+  <meta name="theme-color" content="#0D47A1" />
+  <title>{% block title %}VoteSecure — Online Voting System{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="/static/css/main.css" />
+  <script src="/static/js/darkmode.js"></script>
+  {% block extra_css %}{% endblock %}
+</head>
+<body>
+
+  <nav class="navbar" role="navigation" aria-label="Main navigation">
+    <div class="nav-brand">
+      <span class="nav-logo" aria-hidden="true">🗳️</span>
+      <span>VoteSecure</span>
+    </div>
+
+    <div class="nav-actions">
+      <select class="lang-select" id="langToggle" aria-label="Language selector" onchange="toggleLanguage(this.value)">
+        <option value="en">🇬🇧 English</option>
+        <option value="hi">🇮🇳 हिन्दी</option>
+      </select>
+
+      <button class="dark-mode-toggle" id="darkModeBtn" onclick="toggleDarkMode()"
+              aria-label="Toggle dark mode" title="Toggle dark/light mode">
+        🌙
+      </button>
+
+      {% if user.is_authenticated %}
+        <a href="/accounts/profile/" class="nav-user" style="text-decoration:none; color:rgba(255,255,255,.85);">
+          {{ user.full_name }}
+        </a>
+        <span class="badge {% if user.is_admin %}badge-admin{% else %}badge-voter{% endif %}">
+          {{ user.role|capfirst }}
+        </span>
+        <span class="session-timer" id="sessionTimer" aria-live="polite" title="Session timeout">⏱ 5:00</span>
+        <form method="post" action="/accounts/logout/" style="display:inline">
+          {% csrf_token %}
+          <button type="submit" class="logout-btn">⏻ Logout</button>
+        </form>
+      {% endif %}
+    </div>
+  </nav>
+
+  {% if messages %}
+  <div class="messages-container" role="alert" aria-live="assertive">
+    {% for message in messages %}
+      <div class="alert alert-{{ message.tags }}">
+        {{ message }}
+        <button class="alert-close" onclick="this.parentElement.remove()" aria-label="Dismiss">×</button>
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <main id="main-content" class="main-content" role="main">
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer" role="contentinfo">
+    <p>© 2024 VoteSecure Election Commission. All rights reserved.</p>
+    <p class="footer-sub">Secured by HTTPS · CSRF Protected · End-to-End Encrypted</p>
+  </footer>
+
+  <script src="/static/js/main.js"></script>
+  <script src="/static/js/i18n.js"></script>
+  {% if user.is_authenticated %}
+  <script src="/static/js/session-timer.js"></script>
+  {% endif %}
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

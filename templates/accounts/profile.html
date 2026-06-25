@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}My Profile — VoteSecure{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+
+  <div class="profile-header-card">
+    <div class="profile-avatar">{{ request.user.first_name.0 }}{{ request.user.last_name.0 }}</div>
+    <div class="profile-header-info">
+      <h1 class="profile-name">{{ request.user.full_name }}</h1>
+      <span class="profile-role-badge">
+        {% if request.user.is_admin %}⚙️ Administrator{% else %}🗳️ Registered Voter{% endif %}
+      </span>
+      <p class="profile-email">{{ request.user.email }}</p>
+    </div>
+    <div class="profile-status">
+      {% if request.user.voter_profile.has_voted %}
+        <div class="voted-status voted">✅ Vote Cast</div>
+      {% elif request.user.is_voter %}
+        <div class="voted-status not-voted">⏳ Not Voted Yet</div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="profile-grid">
+
+    <div class="card">
+      <h2 class="card-title">👤 Personal Information</h2>
+      <div class="info-list">
+        <div class="info-row"><span class="info-label">Full Name</span><span class="info-value">{{ request.user.full_name }}</span></div>
+        <div class="info-row"><span class="info-label">Email</span><span class="info-value">{{ request.user.email }}</span></div>
+        <div class="info-row"><span class="info-label">Role</span><span class="info-value">{{ request.user.role|capfirst }}</span></div>
+        <div class="info-row"><span class="info-label">Member Since</span><span class="info-value">{{ request.user.created_at|date:"d M Y" }}</span></div>
+        {% if request.user.last_login_ip %}
+        <div class="info-row"><span class="info-label">Last Login IP</span><span class="info-value">{{ request.user.last_login_ip }}</span></div>
+        {% endif %}
+      </div>
+    </div>
+
+    {% if request.user.voter_profile %}
+    <div class="card">
+      <h2 class="card-title">🗳️ Voter Details</h2>
+      <div class="info-list">
+        <div class="info-row"><span class="info-label">Voter ID</span><span class="info-value voter-id-highlight">{{ request.user.voter_profile.voter_id }}</span></div>
+        <div class="info-row"><span class="info-label">Phone</span><span class="info-value">{{ request.user.voter_profile.phone|default:"—" }}</span></div>
+        <div class="info-row"><span class="info-label">Constituency</span><span class="info-value">{{ request.user.voter_profile.constituency|default:"—" }}</span></div>
+        <div class="info-row">
+          <span class="info-label">Eligibility</span>
+          <span class="info-value">
+            {% if request.user.voter_profile.is_eligible %}<span style="color:var(--success);">✅ Eligible</span>
+            {% else %}<span style="color:var(--danger);">❌ Not Eligible</span>{% endif %}
+          </span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Voting Status</span>
+          <span class="info-value">
+            {% if request.user.voter_profile.has_voted %}<span style="color:var(--success);">✅ Voted</span>
+            {% else %}<span style="color:var(--warning);">⏳ Pending</span>{% endif %}
+          </span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="card">
+      <h2 class="card-title">📋 Voting History</h2>
+      {% if votes %}
+        <div class="vote-history-list">
+          {% for vote in votes %}
+          <div class="vote-history-item">
+            <div class="vote-history-icon">✅</div>
+            <div class="vote-history-info">
+              <strong>{{ vote.election.title }}</strong>
+              <span>{{ vote.cast_at|date:"d M Y, H:i" }}</span>
+              <span class="tx-mini">TX: {{ vote.transaction_hash|slice:":16" }}...</span>
+            </div>
+            <a href="{% url 'votes:thank_you' vote.election.id %}" class="btn btn-sm btn-outline">Receipt</a>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state"><p>🗳️ No votes cast yet.</p></div>
+      {% endif %}
+    </div>
+
+    <div class="card">
+      <h2 class="card-title">🔒 Change Password</h2>
+      <form method="post" action="{% url 'accounts:change_password' %}">
+        {% csrf_token %}
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" name="current_password" class="form-control" placeholder="Enter current password" required />
+        </div>
+        <div class="form-group">
+          <label>New Password</label>
+          <input type="password" name="new_password1" class="form-control" placeholder="Min 8 characters" required />
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" name="new_password2" class="form-control" placeholder="Repeat new password" required />
+        </div>
+        <button type="submit" class="btn btn-primary">Update Password</button>
+      </form>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

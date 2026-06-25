@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}Send Email Notification — VoteSecure{% endblock %}
+
+{% block content %}
+<div style="max-width: 640px; margin: 0 auto;">
+  <div class="card">
+    <h1 class="auth-title" style="margin-bottom: 1.5rem;">📧 Send Email Notification</h1>
+
+    <form method="post" action="{% url 'dashboard:send_email' %}">
+      {% csrf_token %}
+
+      <div class="form-group">
+        <label>Send To</label>
+        <select name="notify_type" class="form-control">
+          <option value="all">All Registered Voters</option>
+          <option value="not_voted">Only Voters Who Haven't Voted Yet</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Email Subject *</label>
+        <input type="text" name="subject" class="form-control" required placeholder="e.g. Reminder: Cast Your Vote Today!" />
+      </div>
+
+      <div class="form-group">
+        <label>Message *</label>
+        <textarea name="message" class="form-control" rows="6" required placeholder="Write your message to voters here..."></textarea>
+      </div>
+
+      <div class="alert alert-info" style="margin-bottom: 1rem;">
+        📧 Emails will be sent to all eligible voters matching your selection.
+      </div>
+
+      <div style="display: flex; gap: 1rem;">
+        <button type="submit" class="btn btn-primary">📧 Send Email</button>
+        <a href="{% url 'dashboard:admin_home' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

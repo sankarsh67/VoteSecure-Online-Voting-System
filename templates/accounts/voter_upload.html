@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Upload Voters — VoteSecure{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 0 auto;">
+  <div class="card">
+    <h1 class="auth-title" style="margin-bottom: 1rem;">📂 Upload Voter CSV</h1>
+    <p style="color: var(--gray-600); margin-bottom: 1.5rem;">
+      Upload a CSV file to bulk-register voters. Required columns:
+      <code>email, first_name, last_name, voter_id</code><br>
+      Optional: <code>phone, constituency</code>
+    </p>
+
+    <div style="background: var(--gray-50); border: 1px solid var(--gray-200); border-radius: 8px; padding: 1rem; margin-bottom: 1.5rem; font-family: monospace; font-size: .85rem;">
+      email,first_name,last_name,voter_id,phone,constituency<br>
+      john@example.com,John,Doe,EPIC001,9876543210,Delhi North<br>
+      jane@example.com,Jane,Smith,EPIC002,9876543211,Delhi South
+    </div>
+
+    <form method="post" enctype="multipart/form-data">
+      {% csrf_token %}
+      <div class="form-group">
+        <label for="csv_file">Select CSV File</label>
+        <input type="file" name="csv_file" id="csv_file" accept=".csv" class="form-control" required />
+      </div>
+      <div style="display: flex; gap: 1rem;">
+        <button type="submit" class="btn btn-primary">Import Voters</button>
+        <a href="{% url 'dashboard:admin_home' %}" class="btn btn-outline">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% block title %}Login — VoteSecure{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+  <div class="auth-card fade-in" id="loginCard">
+
+    <div class="auth-header">
+      <div class="auth-logo">🗳️</div>
+      <h1 class="auth-title">VoteSecure</h1>
+      <p class="auth-subtitle">Secure Democratic Voting Platform</p>
+    </div>
+
+    <div class="role-toggle" role="tablist" aria-label="Select login type">
+      <button class="role-btn active" id="voterBtn" role="tab" aria-selected="true" onclick="switchRole('voter')">
+        🗳️ Voter Login
+      </button>
+      <button class="role-btn" id="adminBtn" role="tab" aria-selected="false" onclick="switchRole('admin')">
+        ⚙️ Admin Login
+      </button>
+    </div>
+
+    <div class="role-desc" id="roleDesc">
+      <span id="roleDescText">Login to cast your vote securely</span>
+    </div>
+
+    <form method="post" action="{% url 'accounts:login' %}" class="auth-form" novalidate>
+      {% csrf_token %}
+      <input type="hidden" name="login_role" id="loginRole" value="voter" />
+
+      <div class="form-group">
+        <label for="id_email">Email Address</label>
+        {{ form.email }}
+        {% if form.email.errors %}<p class="field-error" role="alert">{{ form.email.errors.0 }}</p>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label for="id_password">Password</label>
+        <div class="input-with-icon">
+          {{ form.password }}
+          <button type="button" class="toggle-password" onclick="togglePasswordVisibility()" aria-label="Toggle password visibility">
+            <span id="eyeIcon">👁️</span>
+          </button>
+        </div>
+        {% if form.password.errors %}<p class="field-error" role="alert">{{ form.password.errors.0 }}</p>{% endif %}
+      </div>
+
+      {% if request.GET.timeout %}
+      <div class="alert alert-warning" role="alert">
+        ⚠️ Your session expired due to inactivity. Please login again.
+      </div>
+      {% endif %}
+
+      <button type="submit" class="btn btn-primary btn-full" id="loginBtn">
+        <span id="loginBtnText">Continue as Voter →</span>
+      </button>
+    </form>
+
+    <div class="auth-divider"><span>or</span></div>
+
+    <div id="voterRegisterSection">
+      <a href="{% url 'accounts:register_voter' %}" class="btn btn-outline btn-full register-btn">
+        ✍️ Register as New Voter
+      </a>
+      <p class="register-note">New voter? Create your account to participate in elections.</p>
+    </div>
+
+    <div id="adminNote" style="display:none;">
+      <p class="register-note" style="text-align:center;">
+        🔒 Admin accounts are created by the system administrator only.
+      </p>
+    </div>
+
+    <div class="auth-security-note">
+      <span>🔒</span>
+      <span>Protected by Multi-Factor Authentication (MFA)</span>
+    </div>
+  </div>
+</div>
+
+<script>
+  function switchRole(role) {
+    const voterBtn = document.getElementById('voterBtn');
+    const adminBtn = document.getElementById('adminBtn');
+    const loginRole = document.getElementById('loginRole');
+    const loginBtnText = document.getElementById('loginBtnText');
+    const roleDescText = document.getElementById('roleDescText');
+    const voterRegisterSection = document.getElementById('voterRegisterSection');
+    const adminNote = document.getElementById('adminNote');
+
+    if (role === 'voter') {
+      voterBtn.classList.add('active'); adminBtn.classList.remove('active');
+      voterBtn.setAttribute('aria-selected', 'true'); adminBtn.setAttribute('aria-selected', 'false');
+      loginRole.value = 'voter';
+      loginBtnText.textContent = 'Continue as Voter →';
+      roleDescText.textContent = 'Login to cast your vote securely';
+      voterRegisterSection.style.display = 'block';
+      adminNote.style.display = 'none';
+    } else {
+      adminBtn.classList.add('active'); voterBtn.classList.remove('active');
+      adminBtn.setAttribute('aria-selected', 'true'); voterBtn.setAttribute('aria-selected', 'false');
+      loginRole.value = 'admin';
+      loginBtnText.textContent = 'Continue as Admin →';
+      roleDescText.textContent = 'Manage elections, candidates and voters';
+      voterRegisterSection.style.display = 'none';
+      adminNote.style.display = 'block';
+    }
+  }
+
+  function togglePasswordVisibility() {
+    const pwd = document.getElementById('id_password');
+    const icon = document.getElementById('eyeIcon');
+    if (pwd.type === 'password') { pwd.type = 'text'; icon.textContent = '🙈'; }
+    else { pwd.type = 'password'; icon.textContent = '👁️'; }
+  }
+</script>
+{% endblock %}

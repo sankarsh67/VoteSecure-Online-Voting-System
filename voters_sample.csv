@@ -1,0 +1,6 @@
+email,first_name,last_name,voter_id,phone,constituency
+voter1@gmail.com,Rahul,Sharma,EPIC001,9876543210,Delhi North
+voter2@gmail.com,Priya,Patel,EPIC002,9876543211,Delhi South
+voter3@gmail.com,Amit,Kumar,EPIC003,9876543212,Mumbai East
+voter4@gmail.com,Sunita,Singh,EPIC004,9876543213,Mumbai West
+voter5@gmail.com,Vijay,Reddy,EPIC005,9876543214,Hyderabad Central
